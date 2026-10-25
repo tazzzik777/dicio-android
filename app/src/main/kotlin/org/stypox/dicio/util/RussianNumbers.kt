@@ -291,6 +291,35 @@ object RussianNumbers {
         return res
     }
 
+    private val ORDINAL_STEMS = listOf(
+        "перв" to 1L, "втор" to 2L, "трет" to 3L, "четверт" to 4L, "пят" to 5L,
+        "шест" to 6L, "седьм" to 7L, "восьм" to 8L, "девят" to 9L, "десят" to 10L,
+    )
+    private val ORDINAL_ENDINGS = setOf(
+        "ый", "ой", "ий", "ого", "его", "ому", "ему", "ую", "юю", "ая", "яя", "ое", "ее", "ым", "им",
+        "ом", "ем", "ье", "ья", "ью", "ьего", "ьему", "ьим", "ьей", "ьей", "ей",
+    )
+
+    /**
+     * Finds which item of a list the user chose, e.g. "второй" -> 2, "третьего" -> 3,
+     * "номер четыре" -> 4.
+     * @return the 1-based index, or null if the user did not say any index
+     */
+    fun parseIndex(text: String): Long? {
+        val words = tokenizeWords(text)
+        for (word in words) {
+            for ((stem, value) in ORDINAL_STEMS) {
+                if (word.norm.startsWith(stem) && word.norm.substring(stem.length) in ORDINAL_ENDINGS) {
+                    return value
+                }
+            }
+        }
+        return tokenize(text)
+            .firstNotNullOfOrNull { tok ->
+                (tok as? Tok.Num)?.value?.takeIf { it == floor(it) && it >= 1 }?.toLong()
+            }
+    }
+
     private enum class TimeUnit(val seconds: Double) { SECOND(1.0), MINUTE(60.0), HOUR(3600.0) }
 
     private val UNIT_WORDS: Map<String, TimeUnit> = mapOf(

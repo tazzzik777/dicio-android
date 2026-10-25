@@ -10,6 +10,8 @@ import org.dicio.skill.skill.Specificity
 
 import org.dicio.skill.standard.StandardRecognizerData
 import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.util.RussianNumbers
+import org.stypox.dicio.util.useRussianNumbers
 
 class ContactChooserIndex internal constructor(
     private val contacts: List<Pair<String, String>>,
@@ -20,11 +22,15 @@ class ContactChooserIndex internal constructor(
         ctx: SkillContext,
         input: String
     ): Pair<Score, Int> {
-        val index = ctx.parserFormatter!!
-            .extractNumber(input)
-            .preferOrdinal(true)
-            .integerOnly(true)
-            .parseFirstIfInteger() ?: 0
+        val index = if (ctx.useRussianNumbers()) {
+            RussianNumbers.parseIndex(input) ?: 0
+        } else {
+            ctx.parserFormatter!!
+                .extractNumber(input)
+                .preferOrdinal(true)
+                .integerOnly(true)
+                .parseFirstIfInteger() ?: 0
+        }
         return Pair(
             if (index <= 0 || index > contacts.size) AlwaysWorstScore else AlwaysBestScore,
             index.toInt()

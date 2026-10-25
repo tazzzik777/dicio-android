@@ -81,8 +81,8 @@
     <string name="skill_sentence_example_telephone">Позвони маме</string>
     <string name="skill_sentence_example_timer">Поставь таймер на пять минут</string>
     <string name="skill_name_timer">Секундомер</string>
-    <string name="skill_telephone_unknown_contact">Контакт не найдем, попробуйте ещё раз</string>
-    <string name="skill_telephone_found_contacts">Я нашёл %1$d контактов, какой из них использовать?</string>
+    <string name="skill_telephone_unknown_contact">Контакт не найден, попробуйте ещё раз</string>
+    <string name="skill_telephone_found_contacts">Нашла несколько вариантов: %1$d. Назовите имя или номер в списке, например «второй»</string>
     <string name="skill_telephone_confirm_call">Позвонить %1$s\?</string>
     <string name="skill_telephone_calling">Звоню %1$s…</string>
     <string name="skill_telephone_not_calling">ОК, я никому не звоню</string>

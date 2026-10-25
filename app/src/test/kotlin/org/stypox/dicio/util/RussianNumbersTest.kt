@@ -61,6 +61,14 @@ class RussianNumbersTest : StringSpec({
         RussianNumbers.formatDuration(3_723_000, false) shouldBe "1:02:03"
     }
 
+    "parseIndex" {
+        RussianNumbers.parseIndex("второй") shouldBe 2L
+        RussianNumbers.parseIndex("давай третьего") shouldBe 3L
+        RussianNumbers.parseIndex("номер четыре") shouldBe 4L
+        RussianNumbers.parseIndex("четвёртый") shouldBe 4L
+        RussianNumbers.parseIndex("саша петров") shouldBe null
+    }
+
     "formatNumber" {
         RussianNumbers.formatNumber(10.0) shouldBe "10"
         RussianNumbers.formatNumber(2.5) shouldBe "2,5"

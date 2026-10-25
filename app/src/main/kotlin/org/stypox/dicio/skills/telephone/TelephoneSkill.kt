@@ -10,6 +10,7 @@ import org.dicio.skill.standard.StandardRecognizerData
 import org.dicio.skill.standard.StandardRecognizerSkill
 import org.stypox.dicio.sentences.Sentences
 import org.stypox.dicio.sentences.Sentences.Telephone
+import org.stypox.dicio.util.supportsNumbers
 
 class TelephoneSkill(
     correspondingSkillInfo: SkillInfo,
@@ -50,7 +51,7 @@ class TelephoneSkill(
             // ... either it has exactly one number, or we would be forced (because no number parser
             // is available) to use ContactChooserName, which only uses the first phone number
             // anyway
-            && (validContacts[0].second.size == 1 || ctx.parserFormatter == null)
+            && (validContacts[0].second.size == 1 || !ctx.supportsNumbers())
         ) {
             // not a good enough match, but since we have only this, call it directly
             val contact = validContacts[0]

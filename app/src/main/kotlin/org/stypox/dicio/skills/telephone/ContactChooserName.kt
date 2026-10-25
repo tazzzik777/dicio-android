@@ -24,7 +24,7 @@ class ContactChooserName internal constructor(
     ): Pair<Score, Pair<String, String>?> {
         val trimmedInput = input.trim { it <= ' ' }
 
-        val bestContact = contacts
+        val candidates = contacts
             .map { nameNumberPair ->
                 Pair(
                     nameNumberPair,
@@ -32,8 +32,14 @@ class ContactChooserName internal constructor(
                 )
             }
             .filter { pair -> pair.second < -7 }
-            .minByOrNull { a -> a.second }
-            ?.first
+            .sortedBy { pair -> pair.second }
+
+        // if two different contacts match equally well (e.g. the user said only "Саша" and there
+        // are "Саша Иванов" and "Саша Петров"), do not just pick the first one
+        val isTie = candidates.size >= 2
+                && candidates[0].second == candidates[1].second
+                && candidates[0].first.first != candidates[1].first.first
+        val bestContact = if (isTie) null else candidates.firstOrNull()?.first
 
         return Pair(
             if (bestContact == null) AlwaysWorstScore else AlwaysBestScore,

@@ -18,6 +18,7 @@ import org.stypox.dicio.R
 import org.stypox.dicio.io.graphical.Headline
 import org.stypox.dicio.sentences.Sentences
 import org.stypox.dicio.util.getString
+import org.stypox.dicio.util.supportsNumbers
 
 class TelephoneOutput(
     private val contacts: List<Pair<String, List<String>>>,
@@ -39,7 +40,7 @@ class TelephoneOutput(
             )
         )
 
-        if (ctx.parserFormatter != null) {
+        if (ctx.supportsNumbers()) {
             nextSkills.add(
                 ContactChooserIndex(
                     contacts.flatMap { contact ->
@@ -64,6 +65,8 @@ class TelephoneOutput(
             Headline(text = getSpeechOutput(ctx))
         } else {
             Column {
+                // the index of each number, which the user can say to choose it (e.g. "second")
+                var numberIndex = 0
                 for (i in contacts.indices) {
                     if (i != 0) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -75,8 +78,9 @@ class TelephoneOutput(
                     )
 
                     for (number in contacts[i].second) {
+                        numberIndex += 1
                         Text(
-                            text = number,
+                            text = if (ctx.supportsNumbers()) "$numberIndex. $number" else number,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(start = 8.dp, top = 2.dp)
                         )
