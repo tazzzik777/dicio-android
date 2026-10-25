@@ -22,6 +22,7 @@ import org.stypox.dicio.sentences.Sentences
 import org.stypox.dicio.sentences.Sentences.Timer
 import org.stypox.dicio.util.RussianNumbers
 import org.stypox.dicio.util.StringUtils
+import org.stypox.dicio.util.canStartActivities
 import org.stypox.dicio.util.englishParserFormatter
 import org.stypox.dicio.util.useRussianNumbers
 import org.stypox.dicio.util.getString
@@ -71,8 +72,18 @@ class TimerSkill(
         duration: Duration,
         name: String?,
     ): SkillOutput {
-        // prefer the phone's clock app, so that the timer is visible and handled by the system
-        if (setTimerInClockApp(ctx, duration, name)) {
+        // prefer the phone's clock app, so that the timer is visible and handled by the system,
+        // but only if:
+        // - Android allows Dicio to start the clock app right now (otherwise the request would be
+        //   silently blocked, and the user would think a timer was set while it wasn't)
+        // - no timer set by Dicio is still running in the clock app, since some clock apps (e.g.
+        //   Samsung's) support only one timer at a time, and the new one would get lost
+        val clockAppBusy = clockAppTimerEndMillis > System.currentTimeMillis()
+        if (!clockAppBusy
+            && canStartActivities(ctx.android)
+            && setTimerInClockApp(ctx, duration, name)
+        ) {
+            clockAppTimerEndMillis = System.currentTimeMillis() + duration.toMillis()
             return TimerOutput.SetInClockApp(
                 formatStringWithName(
                     ctx, name, duration.toMillis(),
@@ -150,8 +161,9 @@ class TimerSkill(
     }
 
     private fun cancelTimer(ctx: SkillContext, name: String?): SkillOutput {
-        if (SET_TIMERS.isEmpty() && showTimersInClockApp(ctx)) {
+        if (SET_TIMERS.isEmpty() && canStartActivities(ctx.android) && showTimersInClockApp(ctx)) {
             // timers are probably in the clock app, let the user handle them there
+            clockAppTimerEndMillis = 0
             return TimerOutput.Cancel(ctx.getString(R.string.skill_timer_opening_clock))
         }
 
@@ -198,9 +210,14 @@ class TimerSkill(
     }
 
     private fun queryTimer(ctx: SkillContext, name: String?): SkillOutput {
-        if (SET_TIMERS.isEmpty() && showTimersInClockApp(ctx)) {
-            // timers are probably in the clock app, which can show the remaining time
-            return TimerOutput.Query(ctx.getString(R.string.skill_timer_opening_clock))
+        if (SET_TIMERS.isEmpty() && clockAppTimerEndMillis > System.currentTimeMillis()) {
+            // the last timer is in the clock app, but Dicio knows when it ends
+            return TimerOutput.Query(
+                formatStringWithName(
+                    ctx, null, clockAppTimerEndMillis - System.currentTimeMillis(),
+                    R.string.skill_timer_query, R.string.skill_timer_query_name
+                )
+            )
         }
 
         val message = if (SET_TIMERS.isEmpty()) {
@@ -268,7 +285,8 @@ class TimerSkill(
             if (!name.isNullOrBlank()) {
                 putExtra(AlarmClock.EXTRA_MESSAGE, name)
             }
-            putExtra(AlarmClock.EXTRA_SKIP_UI, false) // show the timer in the clock app
+            // start the timer right away, without waiting for the user to confirm in the clock app
+            putExtra(AlarmClock.EXTRA_SKIP_UI, true)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         return startActivitySafely(ctx, intent)
@@ -303,6 +321,9 @@ class TimerSkill(
 
     companion object {
         private const val MAX_CLOCK_APP_TIMER_SECONDS = 24 * 60 * 60
+
+        /** When the last timer that Dicio set in the clock app will end, or 0 if none */
+        private var clockAppTimerEndMillis: Long = 0
         val SET_TIMERS: MutableList<SetTimer> = ArrayList()
         val TAG: String = TimerSkill::class.simpleName!!
     }
