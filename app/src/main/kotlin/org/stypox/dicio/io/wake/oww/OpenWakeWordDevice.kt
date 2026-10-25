@@ -19,6 +19,7 @@ import org.stypox.dicio.util.FileToDownload
 import org.stypox.dicio.util.downloadBinaryFilesWithPartial
 import java.io.File
 import java.io.IOException
+import kotlin.math.abs
 
 class OpenWakeWordDevice(
     @param:ApplicationContext private val appContext: Context,
@@ -76,6 +77,9 @@ class OpenWakeWordDevice(
         }
     }
 
+    /** the recent peak audio level, used to amplify quiet audio */
+    private var smoothedPeak = 0.0f
+
     override fun processFrame(audio16bitPcm: ShortArray): Boolean {
         if (audio16bitPcm.size != OwwModel.MEL_INPUT_COUNT) {
             throw IllegalArgumentException(
@@ -103,11 +107,24 @@ class OpenWakeWordDevice(
             }
         }
 
+        var framePeak = 0.0f
         for (i in 0..<OwwModel.MEL_INPUT_COUNT) {
             audio[i] = audio16bitPcm[i].toFloat() / 32768.0f
+            framePeak = maxOf(framePeak, abs(audio[i]))
         }
 
-        return model!!.processFrame(audio) > 0.8f
+        // The microphone is recorded without automatic gain control, so a normal voice from a
+        // distance can be too quiet for the model. Slowly track the recent peak level and amplify
+        // quiet audio (up to MAX_GAIN times), so the user does not need to shout.
+        smoothedPeak = maxOf(framePeak, smoothedPeak * PEAK_DECAY_PER_FRAME)
+        val gain = (TARGET_PEAK / maxOf(smoothedPeak, 1e-4f)).coerceIn(1.0f, MAX_GAIN)
+        if (gain > 1.0f) {
+            for (i in 0..<OwwModel.MEL_INPUT_COUNT) {
+                audio[i] = (audio[i] * gain).coerceIn(-1.0f, 1.0f)
+            }
+        }
+
+        return model!!.processFrame(audio) > DETECTION_THRESHOLD
     }
 
     override fun frameSize(): Int {
@@ -126,6 +143,15 @@ class OpenWakeWordDevice(
 
     companion object {
         val TAG = OpenWakeWordDevice::class.simpleName
+
+        /** openWakeWord models are trained to work well with a threshold of 0.5 (was 0.8) */
+        private const val DETECTION_THRESHOLD = 0.5f
+        /** quiet audio is amplified so that its peak reaches about this level */
+        private const val TARGET_PEAK = 0.3f
+        /** never amplify more than this, to avoid amplifying background noise too much */
+        private const val MAX_GAIN = 3.0f
+        /** each 80ms frame the tracked peak decays a little, so it halves in about 10 seconds */
+        private const val PEAK_DECAY_PER_FRAME = 0.995f
         const val MEL_URL = "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/melspectrogram.tflite"
         const val EMB_URL = "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/embedding_model.tflite"
         const val WAKE_URL = "https://github.com/Stypox/dicio-android/releases/download/v2.0/hey_dicio_v6.0.tflite"
