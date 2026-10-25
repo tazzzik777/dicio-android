@@ -237,7 +237,7 @@ class WakeService : Service() {
         handler.removeCallbacks(releaseSttResourcesRunnable)
         handler.postDelayed(releaseSttResourcesRunnable, RELEASE_STT_RESOURCES_MILLIS)
 
-        if (canStartActivities(this)) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || canStartActivities(this)) {
             // start the activity directly on versions prior to Android 10, if the MainActivity is
             // already running in the foreground, or if the user allowed Dicio to display over
             // other apps (which also allows starting activities from the background)
