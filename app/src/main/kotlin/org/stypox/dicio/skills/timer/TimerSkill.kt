@@ -1,8 +1,11 @@
 package org.stypox.dicio.skills.timer
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
+import android.provider.AlarmClock
 import android.util.Log
 import androidx.annotation.StringRes
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +71,16 @@ class TimerSkill(
         duration: Duration,
         name: String?,
     ): SkillOutput {
+        // prefer the phone's clock app, so that the timer is visible and handled by the system
+        if (setTimerInClockApp(ctx, duration, name)) {
+            return TimerOutput.SetInClockApp(
+                formatStringWithName(
+                    ctx, name, duration.toMillis(),
+                    R.string.skill_timer_set, R.string.skill_timer_set_name
+                )
+            )
+        }
+
         var ringtone: Ringtone? = null
 
         val setTimer = withContext(Dispatchers.Main) { SetTimer(
@@ -137,6 +150,11 @@ class TimerSkill(
     }
 
     private fun cancelTimer(ctx: SkillContext, name: String?): SkillOutput {
+        if (SET_TIMERS.isEmpty() && showTimersInClockApp(ctx)) {
+            // timers are probably in the clock app, let the user handle them there
+            return TimerOutput.Cancel(ctx.getString(R.string.skill_timer_opening_clock))
+        }
+
         val message: String
         if (SET_TIMERS.isEmpty()) {
             message = ctx.android
@@ -180,6 +198,11 @@ class TimerSkill(
     }
 
     private fun queryTimer(ctx: SkillContext, name: String?): SkillOutput {
+        if (SET_TIMERS.isEmpty() && showTimersInClockApp(ctx)) {
+            // timers are probably in the clock app, which can show the remaining time
+            return TimerOutput.Query(ctx.getString(R.string.skill_timer_opening_clock))
+        }
+
         val message = if (SET_TIMERS.isEmpty()) {
             ctx.getString(R.string.skill_timer_no_active)
         } else if (name == null) {
@@ -229,7 +252,57 @@ class TimerSkill(
             ?.setTimer
     }
 
+    /**
+     * Asks the phone's clock app to start a timer.
+     * @return false if no clock app could handle the request, in which case Dicio's own internal
+     * timer should be used instead
+     */
+    private fun setTimerInClockApp(ctx: SkillContext, duration: Duration, name: String?): Boolean {
+        val seconds = duration.seconds
+        if (seconds < 1 || seconds > MAX_CLOCK_APP_TIMER_SECONDS) {
+            return false // the clock app only accepts timers between 1 second and 24 hours
+        }
+
+        val intent = Intent(AlarmClock.ACTION_SET_TIMER).apply {
+            putExtra(AlarmClock.EXTRA_LENGTH, seconds.toInt())
+            if (!name.isNullOrBlank()) {
+                putExtra(AlarmClock.EXTRA_MESSAGE, name)
+            }
+            putExtra(AlarmClock.EXTRA_SKIP_UI, false) // show the timer in the clock app
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        return startActivitySafely(ctx, intent)
+    }
+
+    /**
+     * Opens the list of timers in the phone's clock app.
+     * @return false if this is not possible
+     */
+    private fun showTimersInClockApp(ctx: SkillContext): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return false
+        }
+        val intent = Intent(AlarmClock.ACTION_SHOW_TIMERS).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        return startActivitySafely(ctx, intent)
+    }
+
+    private fun startActivitySafely(ctx: SkillContext, intent: Intent): Boolean {
+        return try {
+            ctx.android.startActivity(intent)
+            true
+        } catch (e: ActivityNotFoundException) {
+            Log.w(TAG, "No clock app can handle ${intent.action}", e)
+            false
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Not allowed to start ${intent.action}", e)
+            false
+        }
+    }
+
     companion object {
+        private const val MAX_CLOCK_APP_TIMER_SECONDS = 24 * 60 * 60
         val SET_TIMERS: MutableList<SetTimer> = ArrayList()
         val TAG: String = TimerSkill::class.simpleName!!
     }

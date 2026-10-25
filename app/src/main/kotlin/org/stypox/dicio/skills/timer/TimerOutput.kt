@@ -95,6 +95,12 @@ sealed interface TimerOutput : SkillOutput {
         }
     }
 
+    class SetInClockApp(
+        private val speechOutput: String,
+    ) : TimerOutput, HeadlineSpeechSkillOutput {
+        override fun getSpeechOutput(ctx: SkillContext): String = speechOutput
+    }
+
     class Cancel(
         private val speechOutput: String,
     ) : TimerOutput, HeadlineSpeechSkillOutput {

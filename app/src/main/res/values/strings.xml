@@ -184,6 +184,7 @@
     <string name="skill_timer_confirm_cancel">Are you sure you want to cancel all timers?</string>
     <string name="skill_timer_expired">The timer has expired!</string>
     <string name="skill_timer_expired_name">Timer %1$s has expired!</string>
+    <string name="skill_timer_opening_clock">Opening the timers in the clock app</string>
     <string name="skill_timer_set">OK, the timer will expire in %1$s</string>
     <string name="skill_timer_set_name">OK, timer %1$s will expire in %2$s</string>
     <string name="skill_timer_canceled">The timer was canceled</string>

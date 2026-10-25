@@ -104,6 +104,7 @@
     <string name="skill_timer_confirm_cancel">Отменить все таймеры\?</string>
     <string name="skill_timer_expired_name">Таймер %1$s: время вышло!</string>
     <string name="skill_timer_set_name">Хорошо, таймер %1$s сработает через %2$s</string>
+    <string name="skill_timer_opening_clock">Открываю таймеры в часах</string>
     <string name="skill_timer_set">Хорошо, таймер сработает через %1$s</string>
     <string name="pref_skill_number_library_not_available">Библиотека анализирующая и форматирующая числа <i>dicio-numbers</i> пока не переведена на Ваш язык, что значит, все умения связанные с числами, длительностью и датами не доступны. Помогите, если можете, нажав сюда <b>Please contribute</b>!</string>
     <string name="error_report">Сообщить</string>
