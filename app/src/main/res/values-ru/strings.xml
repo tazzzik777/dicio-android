@@ -84,6 +84,7 @@
     <string name="skill_telephone_unknown_contact">Контакт не найден, попробуйте ещё раз</string>
     <string name="skill_telephone_found_contacts">Нашла несколько вариантов: %1$d. Назовите имя или номер в списке, например «второй»</string>
     <string name="skill_telephone_confirm_call">Позвонить %1$s\?</string>
+    <string name="skill_telephone_confirm_call_speakerphone">Позвонить %1$s по громкой связи\?</string>
     <string name="skill_telephone_calling">Звоню %1$s…</string>
     <string name="skill_telephone_not_calling">ОК, я никому не звоню</string>
     <string name="skill_timer_how_much_time">На сколько поставить таймер\?</string>

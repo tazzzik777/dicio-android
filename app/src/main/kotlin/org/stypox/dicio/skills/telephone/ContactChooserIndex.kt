@@ -16,6 +16,7 @@ import org.stypox.dicio.util.useRussianNumbers
 class ContactChooserIndex internal constructor(
     private val contacts: List<Pair<String, String>>,
     private val yesNoData: StandardRecognizerData<Sentences.UtilYesNo>,
+    private val speakerphone: Boolean = false,
 ) : Skill<Int>(TelephoneInfo, Specificity.HIGH) {
 
     override fun score(
@@ -40,7 +41,7 @@ class ContactChooserIndex internal constructor(
     override suspend fun generateOutput(ctx: SkillContext, inputData: Int): SkillOutput {
         if (inputData > 0 && inputData <= contacts.size) {
             val contact = contacts[inputData - 1]
-            return ConfirmCallOutput(contact.first, contact.second, yesNoData)
+            return ConfirmCallOutput(contact.first, contact.second, yesNoData, speakerphone)
         } else {
             // impossible situation
             return ConfirmedCallOutput(null)

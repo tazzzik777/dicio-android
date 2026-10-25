@@ -23,6 +23,7 @@ import org.stypox.dicio.util.supportsNumbers
 class TelephoneOutput(
     private val contacts: List<Pair<String, List<String>>>,
     private val yesNoData: StandardRecognizerData<Sentences.UtilYesNo>,
+    private val speakerphone: Boolean = false,
 ) : SkillOutput {
     override fun getSpeechOutput(ctx: SkillContext): String = if (contacts.isEmpty()) {
         ctx.getString(R.string.skill_telephone_unknown_contact)
@@ -37,6 +38,7 @@ class TelephoneOutput(
                 // different numbers, so just use the first one
                 contacts.map { Pair(it.first, it.second[0]) },
                 yesNoData,
+                speakerphone,
             )
         )
 
@@ -49,6 +51,7 @@ class TelephoneOutput(
                         }
                     },
                     yesNoData,
+                    speakerphone,
                 )
             )
         }

@@ -21,9 +21,13 @@ class ConfirmCallOutput(
     private val name: String,
     private val number: String,
     private val yesNoData: StandardRecognizerData<Sentences.UtilYesNo>,
+    private val speakerphone: Boolean = false,
 ) : SkillOutput {
-    override fun getSpeechOutput(ctx: SkillContext): String =
+    override fun getSpeechOutput(ctx: SkillContext): String = if (speakerphone) {
+        ctx.getString(R.string.skill_telephone_confirm_call_speakerphone, name)
+    } else {
         ctx.getString(R.string.skill_telephone_confirm_call, name)
+    }
 
     override fun getInteractionPlan(ctx: SkillContext): InteractionPlan {
         val confirmYesNoSkill = object : RecognizeYesNoSkill(TelephoneInfo, yesNoData) {
@@ -32,7 +36,7 @@ class ConfirmCallOutput(
                 inputData: Boolean
             ): SkillOutput {
                 return if (inputData) {
-                    TelephoneSkill.call(ctx.android, number)
+                    TelephoneSkill.call(ctx.android, number, speakerphone)
                     ConfirmedCallOutput(number)
                 } else {
                     ConfirmedCallOutput(null)
