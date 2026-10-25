@@ -44,6 +44,17 @@ android {
         }
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // fixed debug key, so that every CI build has the same signature and can be installed
+            // as an update over the previous one
+            storeFile = file("ci-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
             var normalizedGitBranch = gitBranch().replaceFirst("^[^A-Za-z]+", "").replace(Regex("[^0-9A-Za-z]+"), "")
