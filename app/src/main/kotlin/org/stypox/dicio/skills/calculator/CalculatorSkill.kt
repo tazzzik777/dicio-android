@@ -10,6 +10,8 @@ import org.dicio.skill.standard.StandardRecognizerSkill
 import org.dicio.skill.standard.util.MatchHelper
 import org.stypox.dicio.sentences.Sentences.Calculator
 import org.stypox.dicio.sentences.Sentences.CalculatorOperators
+import org.stypox.dicio.util.RussianNumbers
+import org.stypox.dicio.util.useRussianNumbers
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 
@@ -44,7 +46,23 @@ class CalculatorSkill(
     override suspend fun generateOutput(ctx: SkillContext, inputData: Calculator): SkillOutput {
         val textWithNumbers: List<Any>? = when (inputData) {
             is Calculator.Calculate -> inputData.calculation
-        }?.let { ctx.parserFormatter?.extractNumber(it)?.parseMixedWithText() }
+        }?.let { calculation ->
+            if (ctx.useRussianNumbers()) {
+                RussianNumbers.parseMixed(calculation).map { item ->
+                    if (item is Double) {
+                        if (item == Math.floor(item) && Math.abs(item) < 1e15) {
+                            Number(item.toLong())
+                        } else {
+                            Number(item)
+                        }
+                    } else {
+                        item
+                    }
+                }
+            } else {
+                ctx.parserFormatter?.extractNumber(calculation)?.parseMixedWithText()
+            }
+        }
         if (textWithNumbers.isNullOrEmpty()
             || (textWithNumbers.size == 1 && textWithNumbers[0] !is Number)) {
             return CalculatorOutput(null, "", "")
@@ -141,9 +159,13 @@ class CalculatorSkill(
 
         return CalculatorOutput(
             result = numberToString(decimalFormat, Number(result)),
-            spokenResult = ctx.parserFormatter!!
-                .niceNumber(result)
-                .get(),
+            spokenResult = if (ctx.useRussianNumbers()) {
+                RussianNumbers.formatNumber(result)
+            } else {
+                ctx.parserFormatter!!
+                    .niceNumber(result)
+                    .get()
+            },
             inputInterpretation = inputInterpretation.toString(),
         )
     }

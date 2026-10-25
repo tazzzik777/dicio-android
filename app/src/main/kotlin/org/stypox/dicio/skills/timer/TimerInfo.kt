@@ -12,6 +12,7 @@ import org.dicio.skill.context.SkillContext
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.util.supportsNumbers
 
 object TimerInfo : SkillInfo("timer") {
     override fun name(context: Context) =
@@ -27,7 +28,7 @@ object TimerInfo : SkillInfo("timer") {
     override fun build(ctx: SkillContext): Skill<*>? {
         val data = Sentences.Timer[ctx.sentencesLanguage] ?: return null
         val yesNoData = Sentences.UtilYesNo[ctx.sentencesLanguage] ?: return null
-        if (ctx.parserFormatter == null) return null
+        if (!ctx.supportsNumbers()) return null
         return TimerSkill(TimerInfo, data, yesNoData)
     }
 }

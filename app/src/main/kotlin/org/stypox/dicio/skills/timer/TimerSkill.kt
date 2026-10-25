@@ -8,23 +8,38 @@ import androidx.annotation.StringRes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.dicio.skill.context.SkillContext
+import org.dicio.skill.skill.Score
 import org.dicio.skill.skill.SkillInfo
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
 import org.dicio.skill.standard.StandardRecognizerSkill
+import org.dicio.skill.standard.util.MatchHelper
 import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
 import org.stypox.dicio.sentences.Sentences.Timer
+import org.stypox.dicio.util.RussianNumbers
 import org.stypox.dicio.util.StringUtils
+import org.stypox.dicio.util.englishParserFormatter
+import org.stypox.dicio.util.useRussianNumbers
 import org.stypox.dicio.util.getString
 import java.time.Duration
 
 // TODO cleanup this skill and use a service to manage timers
 class TimerSkill(
     correspondingSkillInfo: SkillInfo,
-    data: StandardRecognizerData<Timer>,
+    private val timerData: StandardRecognizerData<Timer>,
     private val yesNoData: StandardRecognizerData<Sentences.UtilYesNo>,
-) : StandardRecognizerSkill<Timer>(correspondingSkillInfo, data) {
+) : StandardRecognizerSkill<Timer>(correspondingSkillInfo, timerData) {
+
+    override fun score(ctx: SkillContext, input: String): Pair<Score, Timer> {
+        if (!ctx.useRussianNumbers()) {
+            return super.score(ctx, input)
+        }
+        // dicio-numbers does not support Russian, so rewrite Russian durations in English (e.g.
+        // "таймер на две минуты" -> "таймер на 2 minutes") and parse them with the English parser
+        val normalized = RussianNumbers.normalizeDurations(input)
+        return timerData.score(MatchHelper(englishParserFormatter, normalized), normalized)
+    }
 
     override suspend fun generateOutput(ctx: SkillContext, inputData: Timer): SkillOutput {
         return when (inputData) {
@@ -66,9 +81,13 @@ class TimerSkill(
             onSecondsTickCallback = { seconds ->
                 if (seconds <= 5) {
                     ctx.speechOutputDevice.speak(
-                        ctx.parserFormatter!!
-                            .pronounceNumber(seconds.toDouble())
-                            .get()
+                        if (ctx.useRussianNumbers()) {
+                            seconds.toString()
+                        } else {
+                            ctx.parserFormatter!!
+                                .pronounceNumber(seconds.toDouble())
+                                .get()
+                        }
                     )
                 }
             },
@@ -186,7 +205,7 @@ class TimerSkill(
             } else {
                 ctx.getString(
                     R.string.skill_timer_query_name, setTimer.name,
-                    getFormattedDuration(ctx.parserFormatter!!, setTimer.lastTickMillis, true)
+                    getFormattedDuration(ctx, setTimer.lastTickMillis, true)
                 )
             }
         }

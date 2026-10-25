@@ -19,6 +19,8 @@ import org.stypox.dicio.io.graphical.Headline
 import org.stypox.dicio.io.graphical.HeadlineSpeechSkillOutput
 import org.stypox.dicio.sentences.Sentences
 import org.stypox.dicio.util.RecognizeYesNoSkill
+import org.stypox.dicio.util.RussianNumbers
+import org.stypox.dicio.util.useRussianNumbers
 import org.stypox.dicio.util.getString
 import java.text.DecimalFormatSymbols
 import java.time.Duration
@@ -38,7 +40,7 @@ sealed interface TimerOutput : SkillOutput {
         override fun GraphicalOutput(ctx: SkillContext) {
             Headline(
                 text = getFormattedDuration(
-                    ctx.parserFormatter!!,
+                    ctx,
                     lastTickMillis.longValue,
                     false,
                 ),
@@ -58,10 +60,14 @@ sealed interface TimerOutput : SkillOutput {
                     ctx: SkillContext,
                     input: String
                 ): Pair<Score, Duration?> {
-                    val duration = ctx.parserFormatter!!
-                        .extractDuration(input)
-                        .parseFirst()
-                        ?.toJavaDuration()
+                    val duration = if (ctx.useRussianNumbers()) {
+                        RussianNumbers.parseDurationSeconds(input)?.let { Duration.ofSeconds(it) }
+                    } else {
+                        ctx.parserFormatter!!
+                            .extractDuration(input)
+                            .parseFirst()
+                            ?.toJavaDuration()
+                    }
 
                     return Pair(
                         if (duration == null) AlwaysWorstScore else AlwaysBestScore,
@@ -137,7 +143,7 @@ fun formatStringWithName(
     @StringRes stringWithoutName: Int,
     @StringRes stringWithName: Int
 ): String {
-    val duration = getFormattedDuration(ctx.parserFormatter!!, milliseconds, true)
+    val duration = getFormattedDuration(ctx, milliseconds, true)
     return if (name == null) {
         ctx.getString(stringWithoutName, duration)
     } else {
@@ -155,6 +161,25 @@ fun formatStringWithName(
         context.getString(stringWithoutName)
     } else {
         context.getString(stringWithName, name)
+    }
+}
+
+fun getFormattedDuration(
+    ctx: SkillContext,
+    milliseconds: Long,
+    speech: Boolean
+): String {
+    if (!ctx.useRussianNumbers()) {
+        return getFormattedDuration(ctx.parserFormatter!!, milliseconds, speech)
+    }
+
+    return if (speech) {
+        RussianNumbers.formatDuration(milliseconds, true)
+    } else {
+        RussianNumbers.formatDuration(milliseconds, false) +
+                DecimalFormatSymbols.getInstance().decimalSeparator +
+                // show only the first decimal place, like for the other languages below
+                (milliseconds.absoluteValue % 1000) / 100
     }
 }
 

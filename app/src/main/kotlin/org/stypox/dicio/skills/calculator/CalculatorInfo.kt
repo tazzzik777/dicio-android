@@ -10,6 +10,7 @@ import org.dicio.skill.skill.Skill
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.util.supportsNumbers
 
 object CalculatorInfo : SkillInfo("calculator") {
     override fun name(context: Context) =
@@ -25,7 +26,7 @@ object CalculatorInfo : SkillInfo("calculator") {
     override fun build(ctx: SkillContext): Skill<*>? {
         val sentences = Sentences.Calculator[ctx.sentencesLanguage] ?: return null
         val operators = Sentences.CalculatorOperators[ctx.sentencesLanguage] ?: return null
-        if (ctx.parserFormatter == null) return null
+        if (!ctx.supportsNumbers()) return null
         return CalculatorSkill(CalculatorInfo, sentences, operators)
     }
 }
