@@ -26,6 +26,8 @@ on:
 jobs:
   build-and-test-jvm:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -55,3 +57,15 @@ jobs:
         with:
           name: app
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Publish APK as the "latest-ru" release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/*.apk dicio-ru.apk
+          gh release delete latest-ru --cleanup-tag --yes || true
+          gh release create latest-ru dicio-ru.apk \
+            --title "Dicio RU" \
+            --notes "Dicio с русским калькулятором и таймером (таймер ставится в Часах телефона)" \
+            --target "${{ github.sha }}"
