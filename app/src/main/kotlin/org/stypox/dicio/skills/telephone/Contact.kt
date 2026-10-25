@@ -6,7 +6,13 @@ import android.util.Log
 import org.stypox.dicio.util.StringUtils
 import java.util.regex.Pattern
 
-class Contact(val name: String, val distance: Int, private val id: String) {
+class Contact(
+    val name: String,
+    val distance: Int,
+    private val id: String,
+    /** see [StringUtils.contactWordScore], higher is better */
+    val wordScore: Int = 0,
+) {
     fun getNumbers(contentResolver: ContentResolver): List<String> {
         val numbers: MutableList<String> = ArrayList()
         try {
@@ -58,13 +64,17 @@ class Contact(val name: String, val distance: Int, private val id: String) {
                     val id = contactCursor.getString(contactIdColumnIndex)
                     if (name != null) {
                         val distance = StringUtils.contactStringDistance(name, userContactName)
-                        if (distance < 0) {
-                            contacts.add(Contact(name, distance, id))
+                        val wordScore = StringUtils.contactWordScore(userContactName, name)
+                        if (distance < 0 || wordScore > 0) {
+                            contacts.add(Contact(name, distance, id, wordScore))
                         }
                     }
                 }
             }
-            contacts.sortWith { c1, c2 -> c1.distance.compareTo(c2.distance) }
+            // first prefer contacts whose words match better, then those with a lower distance
+            contacts.sortWith(
+                compareByDescending<Contact> { it.wordScore }.thenBy { it.distance }
+            )
             return contacts
         }
     }

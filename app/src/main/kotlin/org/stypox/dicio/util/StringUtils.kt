@@ -187,6 +187,52 @@ object StringUtils {
         return -stats.maxSubsequentChars - stats.matchingCharCount
     }
 
+    /**
+     * Compares the words the user said with the words in a contact name, accepting different
+     * word endings (e.g. Russian cases: "саше" matches "Саша").
+     * @return a score that is higher the better [userInput] matches [contactName]: each matched
+     * word in the contact name adds 10, each word of the contact name the user did not say removes
+     * 4 (so that "саше" prefers "Саша" over "Саша Самолет"), and each word the user said that is
+     * not in the contact name removes 1
+     */
+    fun contactWordScore(userInput: String, contactName: String): Int {
+        val inputWords = splitForWordScore(userInput)
+        val nameWords = splitForWordScore(contactName)
+        if (inputWords.isEmpty() || nameWords.isEmpty()) {
+            return 0
+        }
+
+        val matchedName = nameWords.count { nameWord ->
+            inputWords.any { inputWord -> wordsMatchIgnoringEnding(inputWord, nameWord) }
+        }
+        val unmatchedInput = inputWords.count { inputWord ->
+            nameWords.none { nameWord -> wordsMatchIgnoringEnding(inputWord, nameWord) }
+        }
+        return matchedName * 10 - (nameWords.size - matchedName) * 4 - unmatchedInput
+    }
+
+    private fun splitForWordScore(s: String): List<String> {
+        return nfkdNormalizeWord(s.lowercase(Locale.getDefault()))
+            .split(WORD_DELIMITERS_PATTERN.toRegex())
+            .filter { it.isNotEmpty() }
+    }
+
+    private fun wordsMatchIgnoringEnding(a: String, b: String): Boolean {
+        if (a == b) {
+            return true
+        }
+        val commonPrefix = a.commonPrefixWith(b).length
+        val minLength = minOf(a.length, b.length)
+        return if (minLength <= 4) {
+            // short words: allow only the last letter to differ, e.g. "саша" and "саше", but
+            // not "маша" and "мама"
+            commonPrefix >= 2 && commonPrefix >= minLength - 1
+        } else {
+            // longer words: allow the last two letters to differ, e.g. "андрей" and "андрею"
+            commonPrefix >= minLength - 2
+        }
+    }
+
     private class LevenshteinMemoryPos(
         val i: Int,
         val j: Int,

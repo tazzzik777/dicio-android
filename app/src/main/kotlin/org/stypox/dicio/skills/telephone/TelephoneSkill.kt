@@ -38,7 +38,11 @@ class TelephoneSkill(
                 && contact.distance < 3
                 && numbers.size == 1 // it has just one number
                 && (contacts.size <= i + 1 // the next contact has a distance higher by 3+
-                        || contacts[i + 1].distance - 2 > contact.distance)
+                        || contacts[i + 1].distance - 2 > contact.distance
+                        // or the words in the name match clearly better than the next contact,
+                        // e.g. "саше" with contacts "Саша" and "Саша Самолет"
+                        || (contact.wordScore > 0
+                                && contacts[i + 1].wordScore < contact.wordScore))
             ) {
                 // very close match with just one number and without distance ties: call it directly
                 return ConfirmCallOutput(contact.name, numbers[0], yesNoData)
