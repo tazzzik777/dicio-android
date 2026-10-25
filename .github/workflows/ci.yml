@@ -50,7 +50,21 @@ jobs:
           cache: 'gradle'
 
       - name: Build debug APK and run jvm tests
-        run: ./gradlew assembleDebug lintDebug testDebugUnitTest --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug lintDebug testDebugUnitTest --stacktrace 2>&1 | tee build.log
+
+      - name: Publish build log on failure
+        if: failure() && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          grep -nE "^e: |error:|Error:|FAILED|What went wrong" -A4 build.log | head -300 > build-errors.log || true
+          cp app/build/reports/lint-results-debug.txt lint.txt 2>/dev/null || true
+          gh release delete build-log --cleanup-tag --yes || true
+          gh release create build-log build.log build-errors.log $(ls lint.txt 2>/dev/null) \
+            --title "Build log" --notes "Log of the last failed build" --target "${{ github.sha }}"
 
       - name: Upload APK
         uses: actions/upload-artifact@v6
